@@ -4,5 +4,4 @@
 # https://github.com/mrako/python-example-project
 
 BINPATH=`dirname $0`
-# No Python 3.5 support on Ubuntu 14.04
-cd "$BINPATH/.." && python3 main.py $@
+python3 "$BINPATH/../main.py" $@

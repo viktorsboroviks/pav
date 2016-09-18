@@ -7,7 +7,7 @@ from PyQt4 import QtCore
 
 
 NAME = 'PAV (PlantUML Ascetic Viewer)'
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 
 class Controller(object):
@@ -18,10 +18,10 @@ class Controller(object):
     diagram from the file's content using PlantUML. Controller provides the
     diagram to the View and requests for it to be displayed."""
 
-    def __init__(self):
+    def __init__(self, plantuml_path):
         """Initialize Controller, but do not start it"""
         self._fw = _FileWatcher()
-        self._ig = _ImageGenerator()
+        self._ig = _ImageGenerator(plantuml_path)
         self._fw.set_cb_file_changed(self._updateImg)
         self.show_loading = self._ig.show_loading
 
@@ -102,8 +102,13 @@ class _ImageGenerator(QtCore.QThread):
     show_loading(True) - show loading message.
     show_loading(False) - do not show loading message."""
 
-    def __init__(self):
+    def __init__(self, plantuml_path):
+        """Initialize image generator, but do not run it.
+
+        Arguments:
+        plantuml_path - absolute path to plantum .jar file."""
         super(_ImageGenerator, self).__init__()
+        self._plantuml_path = plantuml_path
         self._e = threading.Event()
 
     def run(self):
@@ -139,8 +144,8 @@ class _ImageGenerator(QtCore.QThread):
         This method overrides request mechanism of the ImageGenerator and runs
         PlantUML directly."""
         format_arg = '-t' + img_format
-        command = ['java', '-splash:no', '-jar', 'plantuml.jar', '-pipe',
-                   format_arg]
+        command = ['java', '-splash:no', '-jar', self._plantuml_path,
+                   '-pipe', format_arg]
         proc = subprocess.Popen(command, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
         proc.stdin.write(self._img_text)

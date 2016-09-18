@@ -2,7 +2,6 @@
 
 import pavcore
 import sys
-import os
 from PyQt4 import QtCore, QtGui, QtSvg
 
 
@@ -27,8 +26,8 @@ class View(object):
 
         Arguments:
         controller - instance of pavcore.Controller
-        file_path - PlantUML text file to be processed at startup
-                    (optional, can later be selected from GUI)"""
+        file_path - absolute path to PlantUML text file to be processed at
+                startup (optional, can later be selected from GUI)"""
         self._app = QtGui.QApplication(sys.argv)
         self._mw = _MainWindow()
         self._c = controller
@@ -46,8 +45,7 @@ class View(object):
         self._mw.show()
         self._c.start()
         if self._startup_file_path is not None:
-            self._mw.load_img_from_text(
-                os.path.abspath(self._startup_file_path))
+            self._mw.load_img_from_text(self._startup_file_path)
         else:
             self._mw.set_welcome_msg(HELP_MSG)
         sys.exit(self._app.exec_())
