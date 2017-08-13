@@ -30,7 +30,6 @@ class View(object):
         controller - instance of pavcore.Controller
         file_path - absolute path to PlantUML text file to be processed at
                 startup (optional, can later be selected from GUI)"""
-        self._app = QtWidgets.QApplication(sys.argv)
         self._mw = _MainWindow()
         self._c = controller
         self._mw.sig_save_img_file.connect(self._c.save_img_file)
@@ -50,7 +49,6 @@ class View(object):
             self._mw.load_img_from_txt(self._startup_file_path)
         else:
             self._mw.set_welcome_msg(HELP_MSG)
-        sys.exit(self._app.exec_())
 
 
 class _MainWindow(QtWidgets.QMainWindow):

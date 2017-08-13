@@ -5,7 +5,11 @@ from PyQt5 import QtCore
 
 
 NAME = 'PAV (PlantUML Ascetic Viewer)'
-VERSION = '1.1.0'
+VERSION = '1.0.3'
+
+# TODO: Fix image autoupdate
+# TODO: Implement correct MVC structure
+# TODO: Add config file for cross-platform support
 
 
 class Controller(object):
@@ -21,8 +25,8 @@ class Controller(object):
         self._txt_file_path = None
         self._img_txt = None
         self._fw = _FileWatcher()
-        self._ig = _ImageGenerator(plantuml_path)
         self._fw.fileChanged.connect(self._update_img)
+        self._ig = _ImageGenerator(plantuml_path)
         self.sig_img_generated = self._ig.sig_img_generated
         self.sig_show_loading = self._ig.sig_show_loading
 
