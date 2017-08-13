@@ -2,7 +2,8 @@
 
 import pavcore
 import sys
-from PyQt4 import QtCore, QtGui, QtSvg
+import time
+from PyQt5 import QtCore, QtSvg, QtWidgets
 
 
 HELP_MSG = """\
@@ -28,13 +29,13 @@ class View(object):
         controller - instance of pavcore.Controller
         file_path - absolute path to PlantUML text file to be processed at
                 startup (optional, can later be selected from GUI)"""
-        self._app = QtGui.QApplication(sys.argv)
+        self._app = QtWidgets.QApplication(sys.argv)
         self._mw = _MainWindow()
         self._c = controller
-        self._mw.set_cb_save_img_file(self._c.save_img_file)
-        self._mw.set_cb_set_text_file(self._c.set_text_file)
-        self._c.set_cb_img_generated(self._mw.set_svg_img)
-        self._c.show_loading.connect(self._mw.show_loading)
+        self._mw.sig_save_img_file.connect(self._c.save_img_file)
+        self._mw.sig_set_txt_file.connect(self._c.set_txt_file)
+        self._c.sig_img_generated.connect(self._mw.set_svg_img)
+        self._c.sig_show_loading.connect(self._mw.show_loading)
         self._startup_file_path = file_path
 
     def start(self):
@@ -51,10 +52,24 @@ class View(object):
         sys.exit(self._app.exec_())
 
 
-class _MainWindow(QtGui.QMainWindow):
+class _MainWindow(QtWidgets.QMainWindow):
     _img_file = None
-    _text_file = None
+    _txt_file = None
     _img_format = None
+
+    """Signal to save image file.
+
+        Arguments:
+        img_format -    image file format ("svg" or "png")
+        file_path -     path to the new image file
+                        (if file exists it will be overwritten)"""
+    sig_save_img_file = QtCore.pyqtSignal(str, str)
+
+    """Signal to select text file for watching.
+
+        Arguments:
+        file_path -     path to the file"""
+    sig_set_txt_file = QtCore.pyqtSignal(str)
 
     def __init__(self):
         super(_MainWindow, self).__init__()
@@ -63,9 +78,9 @@ class _MainWindow(QtGui.QMainWindow):
 
     def load_img_from_text(self, file_path):
         """Generate and displey UML diagram from PlantUML text file."""
-        self._text_file = file_path
-        self._cb_set_text_file(self._text_file)
-        self._status_msg = str("Watching: %s" % self._text_file)
+        self._txt_file = file_path
+        self.sig_set_txt_file.emit(self._txt_file)
+        self._status_msg = str("Watching: %s" % self._txt_file)
         self.statusBar().showMessage(self._status_msg, 0)
 
     def set_svg_img(self, byteArray):
@@ -75,14 +90,6 @@ class _MainWindow(QtGui.QMainWindow):
     def set_welcome_msg(self, msg):
         """Set welcome message. Message is not displayed by this function."""
         self._view.set_welcome_msg(msg)
-
-    def set_cb_save_img_file(self, callback):
-        """Set function to be called when user attempts to save image."""
-        self._cb_save_img_file = callback
-
-    def set_cb_set_text_file(self, callback):
-        """Set function to be called when user attempts to select text file."""
-        self._cb_set_text_file = callback
 
     def show_loading(self, boolean):
         """Show/hide loading indicator.
@@ -97,21 +104,21 @@ class _MainWindow(QtGui.QMainWindow):
         self._loading.setVisible(boolean)
 
     def _watch_text(self):
-        self._text_file = QtGui.QFileDialog.getOpenFileName(
+        self._txt_file = QtWidgets.QFileDialog.getOpenFileName(
             self,
             'Watch selected text file for changes',
-            self._text_file)
-        self.load_img_from_text(self._text_file)
+            self._txt_file)[0]
+        self.load_img_from_text(self._txt_file)
 
     def _save_img(self):
         if not self._img_file:
             self._save_img_as()
         else:
-            self._cb_save_img_file(self._img_format, self._img_file)
+            self.sig_save_img_file.emit(self._img_format, self._img_file)
 
     def _save_img_as(self):
         self._img_file, self._img_format = \
-            QtGui.QFileDialog.getSaveFileNameAndFilter(
+            QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 'Save file as...',
                 self._img_file,
@@ -123,7 +130,7 @@ class _MainWindow(QtGui.QMainWindow):
             self._img_format = 'png'
         if not self._img_file.lower().endswith(self._img_format):
             self._img_file = self._img_file + '.' + self._img_format
-        self._cb_save_img_file(self._img_format, self._img_file)
+        self.sig_save_img_file.emit(self._img_format, self._img_file)
 
     def _init_ui(self):
         self.setWindowTitle('%s %s' % (pavcore.NAME, pavcore.VERSION))
@@ -132,7 +139,7 @@ class _MainWindow(QtGui.QMainWindow):
         self._view = _GraphicsViewWidget()
         self.setCentralWidget(self._view)
         # Init Loading bar
-        self._loading = QtGui.QProgressBar()
+        self._loading = QtWidgets.QProgressBar()
         self._loading.setTextVisible(False)
         self.statusBar().addWidget(self._loading)
         self._loading.setMaximumWidth(150)
@@ -143,15 +150,15 @@ class _MainWindow(QtGui.QMainWindow):
 
     def _init_menus(self):
         # Setup actions
-        action_watch_text = QtGui.QAction('&Watch text file', self)
+        action_watch_text = QtWidgets.QAction('&Watch text file', self)
         action_watch_text.setShortcut('Ctrl+w')
         action_watch_text.triggered.connect(self._watch_text)
 
-        action_save_img = QtGui.QAction('&Save image', self)
+        action_save_img = QtWidgets.QAction('&Save image', self)
         action_save_img.setShortcut('Ctrl+s')
         action_save_img.triggered.connect(self._save_img)
 
-        action_save_img_as = QtGui.QAction('&Save image as...', self)
+        action_save_img_as = QtWidgets.QAction('&Save image as...', self)
         action_save_img_as.setShortcut('Ctrl+Shift+s')
         action_save_img_as.triggered.connect(self._save_img_as)
 
@@ -164,22 +171,22 @@ class _MainWindow(QtGui.QMainWindow):
         menu_file.addAction(action_save_img_as)
 
 
-class _GraphicsViewWidget(QtGui.QGraphicsView):
+class _GraphicsViewWidget(QtWidgets.QGraphicsView):
     """Main graphical widget."""
     _helpMsgItem = None
 
     def __init__(self):
-        self._scene = QtGui.QGraphicsScene()
+        self._scene = QtWidgets.QGraphicsScene()
         super(_GraphicsViewWidget, self).__init__(self._scene)
         # Enable image movement with the mouse
-        self.setDragMode(QtGui.QGraphicsView.ScrollHandDrag)
+        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
         self._image = QtSvg.QGraphicsSvgItem()
         self._image_renderer = QtSvg.QSvgRenderer()
         self._scene.addItem(self._image)
 
     def set_welcome_msg(self, msg):
         """Display welcome message."""
-        self._helpMsgItem = QtGui.QGraphicsTextItem(msg)
+        self._helpMsgItem = QtWidgets.QGraphicsTextItem(msg)
         self._scene.addItem(self._helpMsgItem)
 
     def remove_welcome_msg(self):
@@ -187,14 +194,16 @@ class _GraphicsViewWidget(QtGui.QGraphicsView):
         self._scene.removeItem(self._helpMsgItem)
         self._helpMsgItem = None
 
-    def set_svg_img(self, byteArray):
+    def set_svg_img(self, byte_array):
         """Display SVG image from byteArray."""
         if self._helpMsgItem:
             # Remove text item from scene
             self.remove_welcome_msg()
             # Init image item on scene
-        self._image_renderer.load(QtCore.QByteArray(byteArray))
+        self._image_renderer.load(byte_array)
         # Change scene size to image size
+        width = self._image_renderer.defaultSize().width()
+        height = self._image_renderer.defaultSize().height()
         self._scene.setSceneRect(
             0,
             0,
@@ -204,7 +213,7 @@ class _GraphicsViewWidget(QtGui.QGraphicsView):
 
     def wheelEvent(self, event):
         # Enable mouse wheel zoom
-        scale = event.delta()/100
-        if scale < 0:
-            scale = -1 / scale
-        self.scale(scale, scale)
+        scale = event.angleDelta().y() / 1000.0
+        if scale:
+            scale += 1.0
+            self.scale(scale, scale)

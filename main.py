@@ -14,7 +14,10 @@ if __name__ == '__main__':
 
     project_path = os.path.dirname(__file__)
     plantuml_path = str("%s/plantuml.jar" % project_path)
+    text_file_path = args.text_file
+    if (text_file_path):
+        text_file_path = os.path.abspath(args.text_file)
 
     c = pavcore.Controller(plantuml_path)
-    v = pavui.View(c, os.path.abspath(args.text_file))
+    v = pavui.View(c, text_file_path)
     v.start()

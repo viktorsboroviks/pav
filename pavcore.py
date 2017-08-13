@@ -1,9 +1,8 @@
 """Provides services for the UI"""
 
-import threading
 import subprocess
 
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 
 NAME = 'PAV (PlantUML Ascetic Viewer)'
@@ -20,10 +19,12 @@ class Controller(object):
 
     def __init__(self, plantuml_path):
         """Initialize Controller, but do not start it"""
+        self._text_file_path = None
         self._fw = _FileWatcher()
         self._ig = _ImageGenerator(plantuml_path)
-        self._fw.set_cb_file_changed(self._updateImg)
-        self.show_loading = self._ig.show_loading
+        self._fw.fileChanged.connect(self._updateImg)
+        self.sig_img_generated = self._ig.sig_img_generated
+        self.sig_show_loading = self._ig.sig_show_loading
 
     def start(self):
         """Start Controller.
@@ -31,7 +32,7 @@ class Controller(object):
         Call once after Controller is created."""
         self._ig.start()
 
-    def set_text_file(self, file_path):
+    def set_txt_file(self, file_path):
         """Set PlantUML text file to be watched for changes.
 
         1)  Controller reads the PlantUML text file provided under
@@ -57,12 +58,6 @@ class Controller(object):
         with open(file_path, 'wb') as f:
             f.write(img_bytes)
 
-    def set_cb_img_generated(self, callback):
-        """Set function to be called when the image was generated.
-
-        The callback must take SVG byte array with the resulting image."""
-        self._ig.set_cb_img_generated(callback)
-
     def _updateImg(self):
         with open(self._text_file_path) as f:
             self._img_text = f.read()
@@ -72,12 +67,6 @@ class Controller(object):
 class _FileWatcher(QtCore.QFileSystemWatcher):
     """Watch file on the filesystem for change."""
     _file_path = None
-
-    def set_cb_file_changed(self, callback):
-        """Set function to be called when file change was detected.
-
-        The callback takes no arguments."""
-        self.fileChanged.connect(callback)
 
     def set_file(self, file_path):
         """Set file to be watched for changes."""
@@ -96,11 +85,14 @@ class _ImageGenerator(QtCore.QThread):
     Runs as a separate generator thread, so only one image generation request
     is processed at a time."""
 
-    show_loading = QtCore.pyqtSignal(bool)
     """Signal to show loading message.
 
-    show_loading(True) - show loading message.
-    show_loading(False) - do not show loading message."""
+    sig_show_loading(True) - show loading message.
+    sig_show_loading(False) - do not show loading message."""
+    sig_show_loading = QtCore.pyqtSignal(bool)
+
+    """Signal for returning result of image generation."""
+    sig_img_generated = QtCore.pyqtSignal(QtCore.QByteArray)
 
     def __init__(self, plantuml_path):
         """Initialize image generator, but do not run it.
@@ -109,7 +101,8 @@ class _ImageGenerator(QtCore.QThread):
         plantuml_path - absolute path to plantum .jar file."""
         super(_ImageGenerator, self).__init__()
         self._plantuml_path = plantuml_path
-        self._e = threading.Event()
+        self._mutex_req_img_gen = QtCore.QMutex()
+        self._mutex_req_img_gen.lock()
 
     def run(self):
         """Daemon thread. Wait for image generation requests and process them.
@@ -120,12 +113,11 @@ class _ImageGenerator(QtCore.QThread):
         Emit signal to display loading message when generation starts.
         Emit signal to stop displying loading message when generation stops."""
         while(True):
-            self._e.wait()
-            self._e.clear()
-            self.show_loading.emit(True)
-            byteArray = self.run_plantuml('svg', self._img_text)
-            self._cb_img_generated(byteArray)
-            self.show_loading.emit(False)
+            self._mutex_req_img_gen.lock()
+            self.sig_show_loading.emit(True)
+            byte_array = self.run_plantuml('svg', self._img_text)
+            self.sig_img_generated.emit(byte_array)
+            self.sig_show_loading.emit(False)
 
     def request_img_gen(self, img_text):
         """Send request for generate UML diagram image from text.
@@ -136,7 +128,7 @@ class _ImageGenerator(QtCore.QThread):
         Arguments:
         img_text -  text in PlantUML format"""
         self._img_text = img_text.encode()
-        self._e.set()
+        self._mutex_req_img_gen.unlock()
 
     def run_plantuml(self, img_format, img_text):
         """Run PlantUML.
@@ -149,11 +141,5 @@ class _ImageGenerator(QtCore.QThread):
         proc = subprocess.Popen(command, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
         proc.stdin.write(self._img_text)
-        self._img_bytes = proc.communicate()[0]
-        return self._img_bytes
-
-    def set_cb_img_generated(self, callback):
-        """Set function to be called when image was generated.
-
-        Pass generated SVG as a byte array to Controller."""
-        self._cb_img_generated = callback
+        img_bytes = proc.communicate()[0]
+        return QtCore.QByteArray(img_bytes)
