@@ -1,8 +1,7 @@
 """UI"""
 
-import pavcore
 import sys
-import time
+import pavcore
 from PyQt5 import QtCore, QtSvg, QtWidgets
 
 
@@ -22,6 +21,8 @@ PlantUML reference:\thttp://plantuml.com/
 
 
 class View(object):
+    """View provides GUI and communicates with Controlled."""
+
     def __init__(self, controller, file_path=None):
         """Init application with its main window, connect the Controller.
 
@@ -46,7 +47,7 @@ class View(object):
         self._mw.show()
         self._c.start()
         if self._startup_file_path is not None:
-            self._mw.load_img_from_text(self._startup_file_path)
+            self._mw.load_img_from_txt(self._startup_file_path)
         else:
             self._mw.set_welcome_msg(HELP_MSG)
         sys.exit(self._app.exec_())
@@ -73,19 +74,20 @@ class _MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super(_MainWindow, self).__init__()
+        self._status_msg = None
         self._init_ui()
         self._init_menus()
 
-    def load_img_from_text(self, file_path):
+    def load_img_from_txt(self, file_path):
         """Generate and displey UML diagram from PlantUML text file."""
         self._txt_file = file_path
         self.sig_set_txt_file.emit(self._txt_file)
         self._status_msg = str("Watching: %s" % self._txt_file)
         self.statusBar().showMessage(self._status_msg, 0)
 
-    def set_svg_img(self, byteArray):
-        """Display SVG image from byteArray."""
-        self._view.set_svg_img(byteArray)
+    def set_svg_img(self, byte_array):
+        """Display SVG image from byte array."""
+        self._view.set_svg_img(byte_array)
 
     def set_welcome_msg(self, msg):
         """Set welcome message. Message is not displayed by this function."""
@@ -103,12 +105,12 @@ class _MainWindow(QtWidgets.QMainWindow):
             self.statusBar().showMessage(self._status_msg, 0)
         self._loading.setVisible(boolean)
 
-    def _watch_text(self):
+    def _watch_txt(self):
         self._txt_file = QtWidgets.QFileDialog.getOpenFileName(
             self,
             'Watch selected text file for changes',
             self._txt_file)[0]
-        self.load_img_from_text(self._txt_file)
+        self.load_img_from_txt(self._txt_file)
 
     def _save_img(self):
         if not self._img_file:
@@ -150,9 +152,9 @@ class _MainWindow(QtWidgets.QMainWindow):
 
     def _init_menus(self):
         # Setup actions
-        action_watch_text = QtWidgets.QAction('&Watch text file', self)
-        action_watch_text.setShortcut('Ctrl+w')
-        action_watch_text.triggered.connect(self._watch_text)
+        action_watch_txt = QtWidgets.QAction('&Watch text file', self)
+        action_watch_txt.setShortcut('Ctrl+w')
+        action_watch_txt.triggered.connect(self._watch_txt)
 
         action_save_img = QtWidgets.QAction('&Save image', self)
         action_save_img.setShortcut('Ctrl+s')
@@ -165,7 +167,7 @@ class _MainWindow(QtWidgets.QMainWindow):
         # Setup menu bar
         menu_bar = self.menuBar()
         menu_file = menu_bar.addMenu('&File')
-        menu_file.addAction(action_watch_text)
+        menu_file.addAction(action_watch_txt)
         menu_file.addSeparator()
         menu_file.addAction(action_save_img)
         menu_file.addAction(action_save_img_as)
@@ -173,7 +175,7 @@ class _MainWindow(QtWidgets.QMainWindow):
 
 class _GraphicsViewWidget(QtWidgets.QGraphicsView):
     """Main graphical widget."""
-    _helpMsgItem = None
+    _item_help_msg = None
 
     def __init__(self):
         self._scene = QtWidgets.QGraphicsScene()
@@ -186,24 +188,22 @@ class _GraphicsViewWidget(QtWidgets.QGraphicsView):
 
     def set_welcome_msg(self, msg):
         """Display welcome message."""
-        self._helpMsgItem = QtWidgets.QGraphicsTextItem(msg)
-        self._scene.addItem(self._helpMsgItem)
+        self._item_help_msg = QtWidgets.QGraphicsTextItem(msg)
+        self._scene.addItem(self._item_help_msg)
 
     def remove_welcome_msg(self):
         """No longer display welcome message."""
-        self._scene.removeItem(self._helpMsgItem)
-        self._helpMsgItem = None
+        self._scene.removeItem(self._item_help_msg)
+        self._item_help_msg = None
 
     def set_svg_img(self, byte_array):
-        """Display SVG image from byteArray."""
-        if self._helpMsgItem:
+        """Display SVG image from byte array."""
+        if self._item_help_msg:
             # Remove text item from scene
             self.remove_welcome_msg()
             # Init image item on scene
         self._image_renderer.load(byte_array)
         # Change scene size to image size
-        width = self._image_renderer.defaultSize().width()
-        height = self._image_renderer.defaultSize().height()
         self._scene.setSceneRect(
             0,
             0,
@@ -212,7 +212,7 @@ class _GraphicsViewWidget(QtWidgets.QGraphicsView):
         self._image.setSharedRenderer(self._image_renderer)
 
     def wheelEvent(self, event):
-        # Enable mouse wheel zoom
+        """Enable mouse wheel zoom."""
         scale = event.angleDelta().y() / 1000.0
         if scale:
             scale += 1.0

@@ -1,12 +1,11 @@
 """Provides services for the UI"""
 
 import subprocess
-
 from PyQt5 import QtCore
 
 
 NAME = 'PAV (PlantUML Ascetic Viewer)'
-VERSION = '1.0.1'
+VERSION = '1.1.0'
 
 
 class Controller(object):
@@ -19,10 +18,11 @@ class Controller(object):
 
     def __init__(self, plantuml_path):
         """Initialize Controller, but do not start it"""
-        self._text_file_path = None
+        self._txt_file_path = None
+        self._img_txt = None
         self._fw = _FileWatcher()
         self._ig = _ImageGenerator(plantuml_path)
-        self._fw.fileChanged.connect(self._updateImg)
+        self._fw.fileChanged.connect(self._update_img)
         self.sig_img_generated = self._ig.sig_img_generated
         self.sig_show_loading = self._ig.sig_show_loading
 
@@ -43,8 +43,8 @@ class Controller(object):
             the file will result in generating UML diagram from file
             content and requesting the View to display it."""
         self._fw.set_file(file_path)
-        self._text_file_path = file_path
-        self._updateImg()
+        self._txt_file_path = file_path
+        self._update_img()
 
     def save_img_file(self, img_format, file_path):
         """Generate UML diagram and save it as an image file.
@@ -54,14 +54,14 @@ class Controller(object):
         img_format -    image file format ("svg" or "png")
         file_path -     path to the new image file
                         (if file exists it will be overwritten)"""
-        img_bytes = self._ig.run_plantuml(img_format, self._img_text)
+        img_bytes = self._ig.run_plantuml(img_format, self._img_txt)
         with open(file_path, 'wb') as f:
             f.write(img_bytes)
 
-    def _updateImg(self):
-        with open(self._text_file_path) as f:
-            self._img_text = f.read()
-        self._ig.request_img_gen(self._img_text)
+    def _update_img(self):
+        with open(self._txt_file_path) as f:
+            self._img_txt = f.read()
+        self._ig.request_img_gen(self._img_txt)
 
 
 class _FileWatcher(QtCore.QFileSystemWatcher):
@@ -100,6 +100,7 @@ class _ImageGenerator(QtCore.QThread):
         Arguments:
         plantuml_path - absolute path to plantum .jar file."""
         super(_ImageGenerator, self).__init__()
+        self._img_txt = None
         self._plantuml_path = plantuml_path
         self._mutex_req_img_gen = QtCore.QMutex()
         self._mutex_req_img_gen.lock()
@@ -112,25 +113,25 @@ class _ImageGenerator(QtCore.QThread):
         Only one request can be processed at a time.
         Emit signal to display loading message when generation starts.
         Emit signal to stop displying loading message when generation stops."""
-        while(True):
+        while True:
             self._mutex_req_img_gen.lock()
             self.sig_show_loading.emit(True)
-            byte_array = self.run_plantuml('svg', self._img_text)
+            byte_array = self.run_plantuml('svg', self._img_txt)
             self.sig_img_generated.emit(byte_array)
             self.sig_show_loading.emit(False)
 
-    def request_img_gen(self, img_text):
+    def request_img_gen(self, img_txt):
         """Send request for generate UML diagram image from text.
 
         ImageGenerator can generate only one diagram at a time. Request is
         processed as soon as image is generated.
         Requests do not stack.
         Arguments:
-        img_text -  text in PlantUML format"""
-        self._img_text = img_text.encode()
+        img_txt -  text in PlantUML format"""
+        self._img_txt = img_txt
         self._mutex_req_img_gen.unlock()
 
-    def run_plantuml(self, img_format, img_text):
+    def run_plantuml(self, img_format, img_txt):
         """Run PlantUML.
 
         This method overrides request mechanism of the ImageGenerator and runs
@@ -140,6 +141,6 @@ class _ImageGenerator(QtCore.QThread):
                    '-pipe', format_arg]
         proc = subprocess.Popen(command, stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE)
-        proc.stdin.write(self._img_text)
+        proc.stdin.write(img_txt.encode())
         img_bytes = proc.communicate()[0]
         return QtCore.QByteArray(img_bytes)
