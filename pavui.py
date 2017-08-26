@@ -1,5 +1,6 @@
 """UI"""
 
+import os
 import sys
 import pavcore
 from PyQt5 import QtCore, QtSvg, QtWidgets
@@ -36,6 +37,7 @@ class View(object):
         self._mw.sig_set_txt_file.connect(self._c.set_txt_file)
         self._c.sig_img_generated.connect(self._mw.set_svg_img)
         self._c.sig_show_loading.connect(self._mw.show_loading)
+        self._c.sig_set_status_msg.connect(self._mw.set_status_msg)
         self._startup_file_path = file_path
 
     def start(self):
@@ -78,10 +80,13 @@ class _MainWindow(QtWidgets.QMainWindow):
 
     def load_img_from_txt(self, file_path):
         """Generate and displey UML diagram from PlantUML text file."""
+        if not os.access(file_path, os.R_OK):
+            self._txt_file = None
+            self.set_status_msg('File not found: {0}'.format(file_path))
+            return
         self._txt_file = file_path
         self.sig_set_txt_file.emit(self._txt_file)
-        self._status_msg = str("Watching: %s" % self._txt_file)
-        self.statusBar().showMessage(self._status_msg, 0)
+        self.set_status_msg(str("Watching: {0}".format(self._txt_file)))
 
     def set_svg_img(self, byte_array):
         """Display SVG image from byte array."""
@@ -91,17 +96,21 @@ class _MainWindow(QtWidgets.QMainWindow):
         """Set welcome message. Message is not displayed by this function."""
         self._view.set_welcome_msg(msg)
 
-    def show_loading(self, boolean):
+    def show_loading(self, show):
         """Show/hide loading indicator.
 
         Arguments:
-        boolean -   True -> show loading indicator,
+        show    -   True -> show loading indicator,
                     False -> hide loading indicator."""
-        if boolean:
+        if show:
             self.statusBar().clearMessage()
         else:
             self.statusBar().showMessage(self._status_msg, 0)
-        self._loading.setVisible(boolean)
+        self._loading.setVisible(show)
+
+    def set_status_msg(self, msg):
+        self._status_msg = msg
+        self.statusBar().showMessage(self._status_msg, 0)
 
     def _watch_txt(self):
         self._txt_file = QtWidgets.QFileDialog.getOpenFileName(
