@@ -13,11 +13,10 @@ PAV constantly watches your text file for changes and as soon as one is detected
 4.  When done - save UML as .svg or .png.
 
 ## How to install and run?
-
-1.  Install Python3 and PyQt4. In Ubuntu run:
-    $ sudo apt install python3 python3-pyqt4
-2.  From PAV project directory run:
+1.  Install Python3 and PyQt5.
+2.  Linux: From PAV project directory run:
     $ ./bin/pav
+    Windows: Launch main.pyw
 
 ## Example
 
@@ -31,7 +30,7 @@ PAV constantly watches your text file for changes and as soon as one is detected
 
 ## License
 
-GPLv3
+MIT
 
 ## Based on
 
