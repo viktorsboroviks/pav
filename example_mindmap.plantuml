@@ -1,0 +1,35 @@
+@startmindmap
+' for reference see: https://plantuml.com/mindmap-diagram
+
+* DnD
+** Dice roll
+*** d10
+*** d20
+***:d100
+1. Roll 2d10
+2. d100 = 10 * (first d10) + (second d10)
+;
+** Races
+*** Human
+<style>
+node {
+    BackgroundColor lightGreen
+}
+</style>
+*** Dward
+**** Mountain dwarf
+**** Hill dwarf
+***** Subhill dwarf
+****** Subsubhill dwarf
+******* Subsubsubill dwarf
+******** Subsubsubsubill dwarf
+<style>
+node {
+    BackgroundColor lightBlue
+}
+</style>
+** Classes
+***_ Mage
+***_ Druid
+***_ Rogue
+@endmindmap

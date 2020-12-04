@@ -1,3 +1,0 @@
-@startuml
-me -> World : hello world!
-@enduml

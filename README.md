@@ -4,35 +4,45 @@ PAV is a small offline GUI wrapper around PlantUML.
 It allows you to see the resulting UML while editing the text file in your favourite editor.
 PAV constantly watches your text file for changes and as soon as one is detected PAV generates and displays resulting UML diagram.
 
-## Fast start
+## How does it work?
 
 1.  In PAV menu select text file or launch PAV from console:
-    $ pav [your_text_file]
-2.  Make changes to the same file in any text editor and save.
-3.  PAV will detect changes in file and will redraw UML.
+```
+pav [plantuml_file]
+```
+2.  In parallel make changes to the same file in any text editor and save.
+3.  PAV will automatically detect file changes and will redraw UML.
 4.  When done - save UML as .svg or .png.
 
-## How to install and run?
-1.  Install Python3 and PyQt5.
-2.  Linux: From PAV project directory run:
-    $ ./bin/pav
-    Windows: Launch main.pyw
+## How to setup?
 
-## Example
+1. Download latest plantuml
+2. Setup python virtual environment
+3. Install requirements.txt
+4. Run
 
-1.  From PAV project directory run:
-    $ ./bin/pav example.txt
-2.  Edit example.txt in any text editor and save.
+```
+wget http://sourceforge.net/projects/plantuml/files/plantuml.jar/download -O plantuml.jar
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
-## Author
+## How to run?
 
-**Victor Borovik**
+1. Activate python virtual environment
+2. Run
+
+```
+source venv/bin/activate
+bin/pav example.plantuml
+bin/pav example_mindmap.plantuml
+```
 
 ## License
 
 MIT
 
-## Based on
+## Links
 
-PlantUML:
-http://plantuml.com/
+[Latest version of PlanUML][https://plantuml.com/download]
